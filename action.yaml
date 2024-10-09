@@ -1,0 +1,56 @@
+name: Get Bicep Deployments
+description: Outputs the list of deployments based on the GitHub event
+
+inputs:
+  configuration-path:
+    description: The path to the configuration file containing the file paths and hash values.
+    required: true
+  path:
+    description: The root directory from where to enumerate files.
+    required: false
+    default: ${{ github.workspace }}
+  depth:
+    description: This parameter specifies how many levels to enumerate in the directory tree.
+    required: false
+    default: "10"
+  delete-empty-directories:
+    description: Specifying this will delete empty directories. This is usually not necessary when working with git, hence the default is set to 'false'.
+    required: false
+    default: "false"
+outputs:
+  deleted-files:
+    description: A JSON list of the deleted files relative to the 'path' input parameter.
+    value: ${{ steps.delete-files.outputs.deleted-files }}
+  deleted-directories:
+    description: A JSON list of the deleted directories relative to the 'path' input parameter.
+    value: ${{ steps.delete-files.outputs.deleted-directories }}
+
+runs:
+  using: composite
+  steps:
+    - name: Delete files
+      id: delete-files
+      shell: pwsh
+      env:
+        configurationPath: ${{ inputs.configuration-path }}
+        path: ${{ inputs.path }}
+        depth: ${{ inputs.depth }}
+        deleteEmptyDirectories: ${{ inputs.delete-empty-directories == 'true' }}
+        actionPath: ${{ github.action_path }}
+        debug: ${{ runner.debug }}
+      run: |
+        #* Delete-Files.ps1
+
+        #* Set debug preference from runner configuration
+        $DebugPreference = [bool]$env:debug ? "Continue" : "SilentlyContinue"
+
+        #* Run script
+        $output = & "$($env:actionPath)/src/Delete-Files.ps1" `
+          -ConfigurationPath $env:configurationPath `
+          -Path $env:path `
+          -Depth $env:depth `
+          -DeleteEmptyDirectories ([bool]::Parse($env:deleteEmptyDirectories))
+
+        #* Write outputs
+        Write-Output "deleted-files=$(, $output.DeletedFiles | ConvertTo-Json -Compress)" >> $env:GITHUB_OUTPUT
+        Write-Output "deleted-directories=$(, $output.DeletedDirectories | ConvertTo-Json -Compress)" >> $env:GITHUB_OUTPUT
