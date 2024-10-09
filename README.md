@@ -15,7 +15,7 @@ steps:
     uses: actions/checkout@v4
 
   - name: Delete files
-    uses: climpr/delete-files@v0
+    uses: climpr/delete-files@v1
     with:
       configuration-path: delete-files.config.json
 # ...
